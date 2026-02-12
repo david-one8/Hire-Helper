@@ -1,12 +1,11 @@
 import React from 'react';
-import { useUser, UserButton } from '@clerk/clerk-react';
-import NotificationDropdown from '@components/common/NotificationDropdown';
 import { Bell, Search, Sun, Moon, Menu } from 'lucide-react';
 import { useTheme } from '@hooks/useTheme';
 import { motion } from 'framer-motion';
+import NotificationDropdown from '@components/common/NotificationDropdown';
+import UserProfileDropdown from '@components/common/UserProfileDropdown';
 
 const Navbar = ({ onMenuClick }) => {
-  const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -49,12 +48,10 @@ const Navbar = ({ onMenuClick }) => {
           </motion.button>
 
           {/* Notifications */}
-          <div className="relative">
-            <NotificationDropdown />
-          </div>
+          <NotificationDropdown />
 
-          {/* User Button from Clerk */}
-          <UserButton afterSignOutUrl="/auth/login" />
+          {/* User Profile Dropdown */}
+          <UserProfileDropdown />
         </div>
       </div>
     </header>
