@@ -29,7 +29,7 @@ const MyRequests = () => {
       sentAt: 'Sent Jul 3, 2:00 PM',
       location: 'Bellevue, WA',
     },
-  ]);
+  ];
 
   const statusStyles = {
     pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
