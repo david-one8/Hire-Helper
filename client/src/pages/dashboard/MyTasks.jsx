@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@components/common/Button';
 import Card from '@components/common/Card';
+import { EmptyMyTasksState } from '@components/common/EmptyStates';
 
 const MyTasks = () => {
   const navigate = useNavigate();
@@ -48,47 +49,51 @@ const MyTasks = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {myTasks.map((task, index) => (
-          <motion.div
-            key={task.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card hover className="overflow-hidden">
-              <div className="flex gap-4">
-                <img
-                  src={task.image}
-                  alt={task.title}
-                  className="w-32 h-32 object-cover rounded-lg"
-                />
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold">{task.title}</h3>
-                    <span
-                      className={`badge ${
-                        task.status === 'active'
-                          ? 'badge-active'
-                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                      }`}
-                    >
-                      {task.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                    {task.description}
-                  </p>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                    <p>📍 {task.location}</p>
-                    <p>📅 {task.date} • {task.time}</p>
+      {myTasks.length === 0 ? (
+        <EmptyMyTasksState onCreateTask={() => navigate('/add-task')} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {myTasks.map((task, index) => (
+            <motion.div
+              key={task.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card hover className="overflow-hidden">
+                <div className="flex gap-4">
+                  <img
+                    src={task.image}
+                    alt={task.title}
+                    className="w-32 h-32 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-semibold">{task.title}</h3>
+                      <span
+                        className={`badge ${
+                          task.status === 'active'
+                            ? 'badge-active'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                        }`}
+                      >
+                        {task.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                      {task.description}
+                    </p>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                      <p>📍 {task.location}</p>
+                      <p>📅 {task.date} • {task.time}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,9 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Clock } from 'lucide-react';
 import Card from '@components/common/Card';
+import { EmptyMyRequestsState } from '@components/common/EmptyStates';
 
 const MyRequests = () => {
+  const navigate = useNavigate();
+
   const myRequests = [
     {
       id: 1,
@@ -46,62 +50,66 @@ const MyRequests = () => {
         </p>
       </div>
 
-      <div className="space-y-4">
-        {myRequests.map((request, index) => (
-          <motion.div
-            key={request.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card>
-              <div className="flex gap-4">
-                {/* Task Image */}
-                <img
-                  src={request.task.image}
-                  alt={request.task.title}
-                  className="w-24 h-24 object-cover rounded-lg"
-                />
+      {myRequests.length === 0 ? (
+        <EmptyMyRequestsState onBrowseTasks={() => navigate('/feed')} />
+      ) : (
+        <div className="space-y-4">
+          {myRequests.map((request, index) => (
+            <motion.div
+              key={request.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card>
+                <div className="flex gap-4">
+                  {/* Task Image */}
+                  <img
+                    src={request.task.image}
+                    alt={request.task.title}
+                    className="w-24 h-24 object-cover rounded-lg"
+                  />
 
-                {/* Content */}
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-1">
-                        {request.task.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Task owner: {request.task.creator}
+                  {/* Content */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-1">
+                          {request.task.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Task owner: {request.task.creator}
+                        </p>
+                      </div>
+                      <span className={`badge ${statusStyles[request.status]}`}>
+                        {request.status}
+                      </span>
+                    </div>
+
+                    <div className="mb-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Your message:
                       </p>
+                      <p className="text-sm">{request.message}</p>
                     </div>
-                    <span className={`badge ${statusStyles[request.status]}`}>
-                      {request.status}
-                    </span>
-                  </div>
 
-                  <div className="mb-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                      Your message:
-                    </p>
-                    <p className="text-sm">{request.message}</p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Clock size={16} />
-                      {request.sentAt}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin size={16} />
-                      {request.location}
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1">
+                        <Clock size={16} />
+                        {request.sentAt}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin size={16} />
+                        {request.location}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

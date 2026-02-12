@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Clock, MapPin, Star } from 'lucide-react';
 import Card from '@components/common/Card';
 import Button from '@components/common/Button';
+import { EmptyRequestsState } from '@components/common/EmptyStates';
 import toast from 'react-hot-toast';
 
 const Requests = () => {
@@ -54,15 +55,11 @@ const Requests = () => {
         </p>
       </div>
 
-      <div className="space-y-4">
-        {requests.length === 0 ? (
-          <Card className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">
-              No incoming requests yet
-            </p>
-          </Card>
-        ) : (
-          requests.map((request, index) => (
+      {requests.length === 0 ? (
+        <EmptyRequestsState />
+      ) : (
+        <div className="space-y-4">
+          {requests.map((request, index) => (
             <motion.div
               key={request.id}
               initial={{ opacity: 0, y: 20 }}
@@ -145,9 +142,9 @@ const Requests = () => {
                 </div>
               </Card>
             </motion.div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
