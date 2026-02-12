@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUser, UserButton } from '@clerk/clerk-react';
+import NotificationDropdown from '@components/common/NotificationDropdown';
 import { Bell, Search, Sun, Moon, Menu } from 'lucide-react';
 import { useTheme } from '@hooks/useTheme';
 import { motion } from 'framer-motion';
@@ -49,10 +50,7 @@ const Navbar = ({ onMenuClick }) => {
 
           {/* Notifications */}
           <div className="relative">
-            <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <NotificationDropdown />
           </div>
 
           {/* User Button from Clerk */}
