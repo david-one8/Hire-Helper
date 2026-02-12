@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   ListTodo,
@@ -17,6 +17,35 @@ const Sidebar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Close sidebar when route changes (mobile)
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  // Close sidebar when clicking outside (mobile)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('aside') && !event.target.closest('button[aria-label="Toggle menu"]')) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const navItems = [
     { path: '/feed', icon: Home, label: 'Feed' },
     { path: '/my-tasks', icon: ListTodo, label: 'My Tasks' },
@@ -28,32 +57,44 @@ const Sidebar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  const handleLinkClick = () => {
+    setIsOpen(false);
+  };
+
   return (
     <>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-dark-800 rounded-lg shadow-lg"
+        aria-label="Toggle menu"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-dark-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: 0 }}
+        initial={false}
+        animate={{ x: isOpen ? 0 : -280 }}
+        transition={{ type: 'tween', duration: 0.3 }}
         className={`
           fixed lg:static inset-y-0 left-0 z-40
           w-64 bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-dark-700
-          transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -81,7 +122,7 @@ const Sidebar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleLinkClick}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
                     ${
