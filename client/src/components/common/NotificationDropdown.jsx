@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, X, Trash2, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { EmptyNotificationsState } from './EmptyStates';
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -143,17 +144,7 @@ const NotificationDropdown = () => {
             {/* Notifications List */}
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-dark-700 rounded-full flex items-center justify-center mb-3">
-                    <Bell size={24} className="text-gray-400" />
-                  </div>
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">
-                    No notifications
-                  </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                    You're all caught up!
-                  </p>
-                </div>
+                <EmptyNotificationsState />
               ) : (
                 notifications.map((notification) => (
                   <div
