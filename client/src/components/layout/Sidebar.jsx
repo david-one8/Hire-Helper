@@ -17,22 +17,10 @@ const Sidebar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Close sidebar when route changes (mobile)
+  // Close sidebar when route changes (mobile only)
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
-
-  // Close sidebar when clicking outside (mobile)
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest('aside') && !event.target.closest('button[aria-label="Toggle menu"]')) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -56,10 +44,6 @@ const Sidebar = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
-
-  const handleLinkClick = () => {
-    setIsOpen(false);
-  };
 
   return (
     <>
@@ -87,14 +71,11 @@ const Sidebar = () => {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ x: isOpen ? 0 : -280 }}
-        transition={{ type: 'tween', duration: 0.3 }}
+      <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-40
           w-64 bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-dark-700
-          lg:translate-x-0
+          transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -122,7 +103,7 @@ const Sidebar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={handleLinkClick}
+                  onClick={() => setIsOpen(false)}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
                     ${
@@ -157,7 +138,7 @@ const Sidebar = () => {
             </div>
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 };
