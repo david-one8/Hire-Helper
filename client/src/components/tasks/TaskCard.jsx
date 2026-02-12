@@ -5,7 +5,7 @@ import Card from '@components/common/Card';
 import Button from '@components/common/Button';
 import Avatar from '@components/common/Avatar';
 
-const TaskCard = ({ task, onRequest, showRequestButton = true }) => {
+const TaskCard = ({ task, onRequest, onViewDetails, showRequestButton = true }) => {
   const statusColors = {
     active: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
     pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
@@ -15,8 +15,25 @@ const TaskCard = ({ task, onRequest, showRequestButton = true }) => {
     painting: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
   };
 
+  const handleCardClick = () => {
+    if (onViewDetails) {
+      onViewDetails(task);
+    }
+  };
+
+  const handleRequestClick = (e) => {
+    e.stopPropagation(); // Prevent card click when clicking button
+    if (onRequest) {
+      onRequest(task);
+    }
+  };
+
   return (
-    <Card hover className="group overflow-hidden p-0">
+    <Card 
+      hover 
+      className="group overflow-hidden p-0 cursor-pointer" 
+      onClick={handleCardClick}
+    >
       {/* Image */}
       {task.image && (
         <div className="relative h-48 overflow-hidden">
@@ -79,7 +96,7 @@ const TaskCard = ({ task, onRequest, showRequestButton = true }) => {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => onRequest?.(task)}
+              onClick={handleRequestClick}
             >
               Request
             </Button>
