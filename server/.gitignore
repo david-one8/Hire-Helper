@@ -6,7 +6,6 @@ yarn.lock
 # Environment variables
 .env
 .env.local
-.env.example
 .env.development
 .env.production
 
@@ -45,3 +44,4 @@ coverage/
 *.pem
 *.key
 *.cert
+
