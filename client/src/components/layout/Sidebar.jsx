@@ -8,19 +8,16 @@ import {
   Send,
   PlusCircle,
   Settings,
-  Menu,
-  X,
   Briefcase,
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
 
   // Close sidebar when route changes (mobile only)
   useEffect(() => {
     setIsOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setIsOpen]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -47,15 +44,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle menu"
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-dark-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* Overlay for mobile */}
       <AnimatePresence>
         {isOpen && (
