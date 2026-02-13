@@ -3,7 +3,14 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Enable Fast Refresh
+      fastRefresh: true,
+      // Include .js files for JSX transformation
+      include: '**/*.{jsx,js}',
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -17,8 +24,26 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
+  esbuild: {
+    loader: 'jsx',
+    include: /src\/.*\.[jt]sx?$/,
+    exclude: [],
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+        '.jsx': 'jsx',
+      },
+    },
+  },
   server: {
     port: 3000,
     open: true,
+    host: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
   },
 });

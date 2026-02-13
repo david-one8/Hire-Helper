@@ -1,5 +1,11 @@
 export { default as EmptyState } from '../EmptyState';
-export * from '../EmptyStateIllustrations';
+export {
+  NoTasksIllustration,
+  NoRequestsIllustration,
+  NoNotificationsIllustration,
+  NoResultsIllustration,
+  ConnectionErrorIllustration,
+} from '../EmptyStateIllustrations';
 
 // Pre-configured empty states for common scenarios
 import React from 'react';
