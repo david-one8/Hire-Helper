@@ -15,7 +15,7 @@ const router = express.Router();
 // Public routes
 router.get('/:id', userValidators.id, validate, getUserProfile);
 
-// Protected routes
+// Protected routes with real Clerk authentication
 router.use(protect);
 router.put('/profile', userValidators.update, validate, updateProfile);
 router.post('/profile-picture', upload.single('profilePicture'), uploadProfilePicture);

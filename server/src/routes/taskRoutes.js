@@ -20,7 +20,7 @@ const router = express.Router();
 router.get('/', optionalAuth, queryValidators.pagination, queryValidators.taskFilter, validate, getAllTasks);
 router.get('/:id', taskValidators.id, validate, getTaskById);
 
-// Protected routes
+// Protected routes with real Clerk authentication
 router.use(protect);
 router.post('/', upload.single('picture'), taskValidators.create, validate, createTask);
 router.get('/my/tasks', queryValidators.pagination, validate, getMyTasks);
