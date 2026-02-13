@@ -15,7 +15,7 @@ import { requestValidators, queryValidators } from '../utils/validators.js';
 
 const router = express.Router();
 
-// All routes are protected
+// All routes are protected with real Clerk authentication
 router.use(protect);
 
 router.post('/', requestValidators.create, validate, createRequest);

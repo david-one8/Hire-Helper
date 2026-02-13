@@ -14,7 +14,7 @@ import { param } from 'express-validator';
 
 const router = express.Router();
 
-// All routes are protected
+// All routes are protected with real Clerk authentication
 router.use(protect);
 
 router.get('/', queryValidators.pagination, validate, getNotifications);
