@@ -1,40 +1,88 @@
-import axios from 'axios';
+import { useAuth } from '@clerk/clerk-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+class ApiClient {
+  constructor() {
+    this.baseURL = API_BASE_URL;
   }
-);
 
-// Response interceptor
-api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const config = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    };
+
+    const response = await fetch(url, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Something went wrong');
     }
-    return Promise.reject(error.response?.data || error);
-  }
-);
 
+    return data;
+  }
+
+  // Auth
+  syncUser(userData, token) {
+    return this.request('/auth/sync', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(userData),
+    });
+  }
+
+  // Tasks
+  getTasks(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tasks?${queryString}`);
+  }
+
+  getTaskById(id) {
+    return this.request(`/tasks/${id}`);
+  }
+
+  createTask(taskData, token) {
+    return this.request('/tasks', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(taskData),
+    });
+  }
+
+  // Requests
+  createRequest(requestData, token) {
+    return this.request('/requests', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(requestData),
+    });
+  }
+
+  getReceivedRequests(token) {
+    return this.request('/requests/received', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  getSentRequests(token) {
+    return this.request('/requests/sent', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Notifications
+  getNotifications(token) {
+    return this.request('/notifications', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+}
+
+export const api = new ApiClient();
 export default api;
