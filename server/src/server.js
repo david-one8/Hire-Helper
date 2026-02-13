@@ -5,8 +5,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables
+// Load environment variables FIRST
 dotenv.config();
+
+// Verify .env is loaded
+console.log('\n🔍 Environment Check:');
+console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('PORT:', process.env.PORT || 'not set');
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Found ✅' : 'Missing ❌');
+console.log('');
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -32,7 +39,7 @@ const server = app.listen(PORT, () => {
 ║                                                ║
 ║     🚀 HireHelper API Server Running 🚀       ║
 ║                                                ║
-║     Environment: ${process.env.NODE_ENV?.padEnd(27) || 'development'.padEnd(27)}     ║
+║     Environment: ${(process.env.NODE_ENV || 'development').padEnd(27)}     ║
 ║     Port: ${PORT.toString().padEnd(36)}     ║
 ║     URL: http://localhost:${PORT.toString().padEnd(24)}     ║
 ║                                                ║
