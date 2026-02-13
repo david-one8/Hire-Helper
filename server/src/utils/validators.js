@@ -54,15 +54,12 @@ export const requestValidators = {
   ],
 
   respond: [
-    body('status')
-      .isIn(['accepted', 'rejected'])
-      .withMessage('Status must be either accepted or rejected'),
-    body('responseMessage')
-      .optional()
-      .trim()
-      .isLength({ max: 500 })
-      .withMessage('Response message cannot exceed 500 characters'),
-  ],
+  body('responseMessage')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Response message must be between 1 and 500 characters'),
+],
 
   id: [param('id').isMongoId().withMessage('Invalid request ID')],
 };
