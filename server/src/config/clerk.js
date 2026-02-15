@@ -1,13 +1,20 @@
 import { Clerk } from '@clerk/clerk-sdk-node';
 
-const clerk = Clerk({
-  secretKey: process.env.CLERK_SECRET_KEY,
-});
+let clerkInstance = null;
+
+const getClerk = () => {
+  if (!clerkInstance) {
+    clerkInstance = Clerk({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+  }
+  return clerkInstance;
+};
 
 export const verifyClerkToken = async (token) => {
   try {
-    const session = await clerk.sessions.verifySession(token);
-    return session;
+    const payload = await getClerk().verifyToken(token);
+    return payload;
   } catch (error) {
     throw new Error('Invalid authentication token');
   }
@@ -15,11 +22,11 @@ export const verifyClerkToken = async (token) => {
 
 export const getClerkUser = async (userId) => {
   try {
-    const user = await clerk.users.getUser(userId);
+    const user = await getClerk().users.getUser(userId);
     return user;
   } catch (error) {
     throw new Error('User not found');
   }
 };
 
-export default clerk;
+export default getClerk;
