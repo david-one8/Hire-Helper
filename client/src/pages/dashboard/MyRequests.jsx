@@ -1,45 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Clock } from 'lucide-react';
 import Card from '@components/common/Card';
+import LoadingSpinner from '@components/common/LoadingSpinner';
 import { EmptyMyRequestsState } from '@components/common/EmptyStates';
+import api from '@services/api';
+import { getTimeAgo } from '@utils/helpers';
+import toast from 'react-hot-toast';
 
 const MyRequests = () => {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
+  const [myRequests, setMyRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const myRequests = [
-    {
-      id: 1,
-      task: {
-        title: 'Help Moving Furniture',
-        creator: 'Sarah Johnson',
-        image: 'https://images.unsplash.com/photo-1600518464441-9154a4dea21b?w=300',
-      },
-      message: "I'd be happy to help with your move! I have experience with heavy lifting...",
-      status: 'pending',
-      sentAt: 'Sent Jul 4, 10:00 AM',
-      location: 'Downtown Seattle, WA',
-    },
-    {
-      id: 2,
-      task: {
-        title: 'Garden Cleanup',
-        creator: 'Robert Wilson',
-        image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=300',
-      },
-      message: 'I love gardening and would be happy to help...',
-      status: 'accepted',
-      sentAt: 'Sent Jul 3, 2:00 PM',
-      location: 'Bellevue, WA',
-    },
-  ];
+  useEffect(() => {
+    fetchMyRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchMyRequests = async () => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const response = await api.getSentRequests({}, token);
+      setMyRequests(response.data?.requests || []);
+    } catch (err) {
+      console.error('Failed to fetch sent requests:', err);
+      toast.error('Failed to load your requests');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusStyles = {
     pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
     accepted: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    declined: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+    rejected: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -54,60 +62,72 @@ const MyRequests = () => {
         <EmptyMyRequestsState onBrowseTasks={() => navigate('/feed')} />
       ) : (
         <div className="space-y-4">
-          {myRequests.map((request, index) => (
-            <motion.div
-              key={request.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card>
-                <div className="flex gap-4">
-                  {/* Task Image */}
-                  <img
-                    src={request.task.image}
-                    alt={request.task.title}
-                    className="w-24 h-24 object-cover rounded-lg"
-                  />
+          {myRequests.map((request, index) => {
+            const task = request.taskId || {};
+            const taskOwner = request.taskOwnerId || {};
+            const ownerName = `${taskOwner.firstName || ''} ${taskOwner.lastName || ''}`.trim() || 'Unknown';
+            const taskImage = task.picture?.url || null;
+            const taskLocation = task.location || '';
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-1">
-                          {request.task.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Task owner: {request.task.creator}
+            return (
+              <motion.div
+                key={request._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card>
+                  <div className="flex gap-4">
+                    {/* Task Image */}
+                    {taskImage && (
+                      <img
+                        src={taskImage}
+                        alt={task.title}
+                        className="w-24 h-24 object-cover rounded-lg"
+                      />
+                    )}
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-1">
+                            {task.title || 'Unknown Task'}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Task owner: {ownerName}
+                          </p>
+                        </div>
+                        <span className={`badge ${statusStyles[request.status] || statusStyles.pending}`}>
+                          {request.status}
+                        </span>
+                      </div>
+
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          Your message:
                         </p>
+                        <p className="text-sm">{request.message}</p>
                       </div>
-                      <span className={`badge ${statusStyles[request.status]}`}>
-                        {request.status}
-                      </span>
-                    </div>
 
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                        Your message:
-                      </p>
-                      <p className="text-sm">{request.message}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Clock size={16} />
-                        {request.sentAt}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin size={16} />
-                        {request.location}
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Clock size={16} />
+                          {getTimeAgo(request.createdAt)}
+                        </div>
+                        {taskLocation && (
+                          <div className="flex items-center gap-1">
+                            <MapPin size={16} />
+                            {taskLocation}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
