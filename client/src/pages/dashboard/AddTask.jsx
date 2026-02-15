@@ -5,6 +5,7 @@ import { Upload, X } from 'lucide-react';
 import Card from '@components/common/Card';
 import Input from '@components/common/Input';
 import Button from '@components/common/Button';
+import api from '@services/api';
 import toast from 'react-hot-toast';
 
 const AddTask = () => {
@@ -45,12 +46,32 @@ const AddTask = () => {
     setLoading(true);
 
     try {
-      // API call would go here
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Build FormData for multipart upload
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('location', formData.location);
+      submitData.append('category', formData.category || 'other');
+
+      // Combine date + time into ISO strings
+      if (formData.startDate && formData.startTime) {
+        submitData.append('startTime', new Date(`${formData.startDate}T${formData.startTime}`).toISOString());
+      }
+      if (formData.endDate && formData.endTime) {
+        submitData.append('endTime', new Date(`${formData.endDate}T${formData.endTime}`).toISOString());
+      }
+
+      // Attach image file if selected
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput?.files[0]) {
+        submitData.append('picture', fileInput.files[0]);
+      }
+
+      await api.createTaskWithImage(submitData);
       toast.success('Task created successfully!');
       navigate('/my-tasks');
     } catch (error) {
-      toast.error('Failed to create task');
+      toast.error(error.message || 'Failed to create task');
     } finally {
       setLoading(false);
     }
