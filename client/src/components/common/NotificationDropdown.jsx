@@ -5,15 +5,23 @@ import { Bell, Check, X, Trash2, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { EmptyNotificationsState } from './EmptyStates';
 import api from '@services/api';
+import { useUserSynced } from '@context/UserSyncContext';
 
 const NotificationDropdown = () => {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const userSynced = useUserSynced();
 
   const dropdownRef = useRef(null);
+  const getTokenRef = useRef(getToken);
+
+  // Keep getToken ref current to avoid stale closures
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -27,25 +35,25 @@ const NotificationDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch unread count on mount and periodically
+  // Fetch unread count on mount and periodically — only after user synced
   useEffect(() => {
+    if (!isSignedIn || !userSynced) return;
+
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isSignedIn, userSynced]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const fetchUnreadCount = async () => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       if (!token) return;
       const response = await api.getUnreadNotificationCount(token);
       setUnreadCount(response.data?.count || 0);
@@ -57,9 +65,9 @@ const NotificationDropdown = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const token = await getToken();
+      const token = await getTokenRef.current();
       if (!token) return;
-      const response = await api.getNotifications(token);
+      const response = await api.getNotifications({}, token);
       setNotifications(response.data?.notifications || []);
       setUnreadCount(response.data?.unreadCount || 0);
     } catch {
@@ -71,7 +79,7 @@ const NotificationDropdown = () => {
 
   const markAsRead = async (id) => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       await api.markNotificationAsRead(id, token);
       setNotifications((prev) =>
         prev.map((notif) => (notif._id === id ? { ...notif, read: true } : notif))
@@ -84,7 +92,7 @@ const NotificationDropdown = () => {
 
   const markAllAsRead = async () => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       await api.markAllNotificationsAsRead(token);
       setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
       setUnreadCount(0);
@@ -95,7 +103,7 @@ const NotificationDropdown = () => {
 
   const deleteNotification = async (id) => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       await api.deleteNotification(id, token);
       const deleted = notifications.find((n) => n._id === id);
       setNotifications((prev) => prev.filter((notif) => notif._id !== id));
@@ -109,7 +117,7 @@ const NotificationDropdown = () => {
 
   const clearAll = async () => {
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       await api.deleteAllNotifications(token);
       setNotifications([]);
       setUnreadCount(0);
