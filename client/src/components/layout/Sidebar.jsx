@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
@@ -10,14 +11,36 @@ import {
   Settings,
   Briefcase,
 } from 'lucide-react';
+import api from '@services/api';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const [requestBadge, setRequestBadge] = useState(0);
 
   // Close sidebar when route changes (mobile only)
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname, setIsOpen]);
+
+  // Fetch pending request count
+  useEffect(() => {
+    const fetchRequestCount = async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const response = await api.getReceivedRequestCount(token);
+        setRequestBadge(response.data?.pagination?.total || 0);
+      } catch {
+        // Silently fail
+      }
+    };
+    fetchRequestCount();
+    const interval = setInterval(fetchRequestCount, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -34,7 +57,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const navItems = [
     { path: '/feed', icon: Home, label: 'Feed' },
     { path: '/my-tasks', icon: ListTodo, label: 'My Tasks' },
-    { path: '/requests', icon: Inbox, label: 'Requests', badge: 3 },
+    { path: '/requests', icon: Inbox, label: 'Requests', badge: requestBadge },
     { path: '/my-requests', icon: Send, label: 'My Requests' },
     { path: '/add-task', icon: PlusCircle, label: 'Add Task' },
     { path: '/settings', icon: Settings, label: 'Settings' },
@@ -116,11 +139,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           {/* User Info */}
           <div className="p-4 border-t border-gray-200 dark:border-dark-700">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-secondary-400 to-secondary-600 rounded-full" />
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user.fullName || ''}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gradient-to-br from-secondary-400 to-secondary-600 rounded-full" />
+              )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">John Doe</p>
+                <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  john@example.com
+                  {user?.primaryEmailAddress?.emailAddress || ''}
                 </p>
               </div>
             </div>

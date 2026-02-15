@@ -1,49 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, X, Trash2, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { EmptyNotificationsState } from './EmptyStates';
+import api from '@services/api';
 
 const NotificationDropdown = () => {
+  const { getToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'request',
-      title: 'New Help Request',
-      message: 'Sarah Johnson requested help for "Computer Setup Help"',
-      time: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-      read: false,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-    },
-    {
-      id: 2,
-      type: 'accepted',
-      title: 'Request Accepted',
-      message: 'Robert Wilson accepted your request for "Garden Cleanup"',
-      time: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      read: false,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert',
-    },
-    {
-      id: 3,
-      type: 'completed',
-      title: 'Task Completed',
-      message: 'Your task "Help Moving Furniture" has been marked as completed',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      read: true,
-      avatar: null,
-    },
-    {
-      id: 4,
-      type: 'message',
-      title: 'New Message',
-      message: 'Emily Chen sent you a message about "Room Painting Project"',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
-      read: true,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily',
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const dropdownRef = useRef(null);
 
@@ -59,24 +27,95 @@ const NotificationDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Fetch unread count on mount and periodically
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
-    );
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const response = await api.getUnreadNotificationCount(token);
+      setUnreadCount(response.data?.count || 0);
+    } catch {
+      // Silently fail for background polling
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      if (!token) return;
+      const response = await api.getNotifications(token);
+      setNotifications(response.data?.notifications || []);
+      setUnreadCount(response.data?.unreadCount || 0);
+    } catch {
+      // Silently fail
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+  const markAsRead = async (id) => {
+    try {
+      const token = await getToken();
+      await api.markNotificationAsRead(id, token);
+      setNotifications((prev) =>
+        prev.map((notif) => (notif._id === id ? { ...notif, read: true } : notif))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      // Silently fail
+    }
   };
 
-  const clearAll = () => {
-    setNotifications([]);
+  const markAllAsRead = async () => {
+    try {
+      const token = await getToken();
+      await api.markAllNotificationsAsRead(token);
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+      setUnreadCount(0);
+    } catch {
+      // Silently fail
+    }
+  };
+
+  const deleteNotification = async (id) => {
+    try {
+      const token = await getToken();
+      await api.deleteNotification(id, token);
+      const deleted = notifications.find((n) => n._id === id);
+      setNotifications((prev) => prev.filter((notif) => notif._id !== id));
+      if (deleted && !deleted.read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch {
+      // Silently fail
+    }
+  };
+
+  const clearAll = async () => {
+    try {
+      const token = await getToken();
+      await api.deleteAllNotifications(token);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch {
+      // Silently fail
+    }
   };
 
   const getNotificationIcon = (type) => {
@@ -143,12 +182,14 @@ const NotificationDropdown = () => {
 
             {/* Notifications List */}
             <div className="max-h-96 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {loading ? (
+                <div className="p-8 text-center text-gray-500">Loading...</div>
+              ) : notifications.length === 0 ? (
                 <EmptyNotificationsState />
               ) : (
                 notifications.map((notification) => (
                   <div
-                    key={notification.id}
+                    key={notification._id}
                     className={`
                       p-4 border-b border-gray-200 dark:border-dark-700 last:border-b-0
                       hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors
@@ -156,19 +197,11 @@ const NotificationDropdown = () => {
                     `}
                   >
                     <div className="flex gap-3">
-                      {/* Avatar/Icon */}
+                      {/* Icon */}
                       <div className="flex-shrink-0">
-                        {notification.avatar ? (
-                          <img
-                            src={notification.avatar}
-                            alt=""
-                            className="w-10 h-10 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-xl">
-                            {getNotificationIcon(notification.type)}
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-xl">
+                          {getNotificationIcon(notification.type)}
+                        </div>
                       </div>
 
                       {/* Content */}
@@ -186,12 +219,12 @@ const NotificationDropdown = () => {
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 dark:text-gray-500">
-                            {formatDistanceToNow(notification.time, { addSuffix: true })}
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                           </span>
                           <div className="flex items-center gap-1">
                             {!notification.read && (
                               <button
-                                onClick={() => markAsRead(notification.id)}
+                                onClick={() => markAsRead(notification._id)}
                                 className="p-1 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-950 rounded transition-colors"
                                 title="Mark as read"
                               >
@@ -199,7 +232,7 @@ const NotificationDropdown = () => {
                               </button>
                             )}
                             <button
-                              onClick={() => deleteNotification(notification.id)}
+                              onClick={() => deleteNotification(notification._id)}
                               className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded transition-colors"
                               title="Delete"
                             >
