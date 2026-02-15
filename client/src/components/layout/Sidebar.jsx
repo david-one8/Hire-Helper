@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,23 +12,33 @@ import {
   Briefcase,
 } from 'lucide-react';
 import api from '@services/api';
+import { useUserSynced } from '@context/UserSyncContext';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [requestBadge, setRequestBadge] = useState(0);
+  const getTokenRef = useRef(getToken);
+  const userSynced = useUserSynced();
+
+  // Keep getToken ref current to avoid stale closures
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
 
   // Close sidebar when route changes (mobile only)
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname, setIsOpen]);
 
-  // Fetch pending request count
+  // Fetch pending request count — only after user is synced to DB
   useEffect(() => {
+    if (!isSignedIn || !userSynced) return;
+
     const fetchRequestCount = async () => {
       try {
-        const token = await getToken();
+        const token = await getTokenRef.current();
         if (!token) return;
         const response = await api.getReceivedRequestCount(token);
         setRequestBadge(response.data?.pagination?.total || 0);
@@ -39,8 +49,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     fetchRequestCount();
     const interval = setInterval(fetchRequestCount, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isSignedIn, userSynced]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
