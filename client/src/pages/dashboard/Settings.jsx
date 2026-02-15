@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import React, { useState, useRef } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { Camera, Save } from 'lucide-react';
 import Card from '@components/common/Card';
 import Input from '@components/common/Input';
 import Button from '@components/common/Button';
 import toast from 'react-hot-toast';
+import api from '@services/api';
 
 const Settings = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -29,12 +33,39 @@ const Settings = () => {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const token = await getToken();
+      await api.updateProfile(
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phone,
+          bio: formData.bio,
+        },
+        token
+      );
       toast.success('Settings updated successfully!');
     } catch (error) {
-      toast.error('Failed to update settings');
+      toast.error(error.message || 'Failed to update settings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const token = await getToken();
+      const photoFormData = new FormData();
+      photoFormData.append('profilePicture', file);
+      await api.uploadProfilePicture(photoFormData, token);
+      toast.success('Profile picture updated!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -58,12 +89,28 @@ const Settings = () => {
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover"
               />
-              <button className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors"
+              >
                 <Camera size={16} />
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
             </div>
             <div>
-              <Button size="sm" variant="outline">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                loading={uploadingPhoto}
+              >
                 Change Photo
               </Button>
               <Button size="sm" variant="ghost" className="ml-2">
