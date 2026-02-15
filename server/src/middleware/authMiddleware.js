@@ -1,7 +1,7 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
-import clerk from '../config/clerk.js';
+import getClerk from '../config/clerk.js';
 import User from '../models/User.js';
 
 export const protect = asyncHandler(async (req, res, next) => {
@@ -17,15 +17,15 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    // Verify token with Clerk
-    const session = await clerk.sessions.verifySession(token);
+    // Verify JWT token with Clerk
+    const payload = await getClerk().verifyToken(token);
     
-    if (!session) {
+    if (!payload || !payload.sub) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid token');
     }
 
-    // Get user from database
-    const user = await User.findOne({ clerkId: session.userId });
+    // Get user from database using Clerk user ID (sub claim)
+    const user = await User.findOne({ clerkId: payload.sub });
 
     if (!user) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'User not found');
@@ -37,7 +37,7 @@ export const protect = asyncHandler(async (req, res, next) => {
 
     // Attach user to request
     req.user = user;
-    req.clerkUserId = session.userId;
+    req.clerkUserId = payload.sub;
     
     next();
   } catch (error) {
@@ -57,12 +57,12 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
 
   if (token) {
     try {
-      const session = await clerk.sessions.verifySession(token);
-      const user = await User.findOne({ clerkId: session.userId });
+      const payload = await getClerk().verifyToken(token);
+      const user = await User.findOne({ clerkId: payload.sub });
       
       if (user && user.isActive) {
         req.user = user;
-        req.clerkUserId = session.userId;
+        req.clerkUserId = payload.sub;
       }
     } catch (error) {
       // Continue without authentication
