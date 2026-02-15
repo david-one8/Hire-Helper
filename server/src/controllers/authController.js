@@ -3,7 +3,7 @@ import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import User from '../models/User.js';
-import clerk from '../config/clerk.js';
+import getClerk from '../config/clerk.js';
 
 // @desc    Sync user from Clerk to database
 // @route   POST /api/auth/sync
@@ -15,31 +15,24 @@ export const syncUser = asyncHandler(async (req, res) => {
     throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Clerk ID and email are required');
   }
 
-  // Check if user already exists
-  let user = await User.findOne({ clerkId });
-
-  if (user) {
-    // Update existing user
-    user.firstName = firstName || user.firstName;
-    user.lastName = lastName || user.lastName;
-    user.email = email;
-    if (profilePicture) {
-      user.profilePicture = { url: profilePicture };
-    }
-    await user.save();
-  } else {
-    // Create new user
-    user = await User.create({
-      clerkId,
-      firstName,
-      lastName,
-      email,
-      profilePicture: profilePicture ? { url: profilePicture } : undefined,
-    });
+  // Atomic upsert — avoids race conditions and duplicate key errors
+  const updateData = {
+    firstName,
+    lastName,
+    email,
+  };
+  if (profilePicture) {
+    updateData.profilePicture = { url: profilePicture };
   }
 
-  res.status(HTTP_STATUS.CREATED).json(
-    new ApiResponse(HTTP_STATUS.CREATED, user, 'User synced successfully')
+  const user = await User.findOneAndUpdate(
+    { clerkId },
+    { $set: updateData, $setOnInsert: { clerkId } },
+    { upsert: true, new: true, runValidators: true }
+  );
+
+  res.status(HTTP_STATUS.OK).json(
+    new ApiResponse(HTTP_STATUS.OK, user, 'User synced successfully')
   );
 });
 
@@ -70,7 +63,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
 
   // Optionally delete from Clerk as well
   try {
-    await clerk.users.deleteUser(user.clerkId);
+    await getClerk().users.deleteUser(user.clerkId);
   } catch (error) {
     console.error('Error deleting user from Clerk:', error);
   }
